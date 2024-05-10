@@ -1,0 +1,69 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+
+public class JolokiaHealthCheck {
+    public static void main(String[] args) {
+        try {
+            // Jolokia가 설치된 서버의 URL
+            String jolokiaUrl = Constants.JOLOKIA_SERVER_URL + ":8778/jolokia/";
+            // /listnetwork 엔드포인트 호출
+            String listNetworkUrl = jolokiaUrl + "listnetwork";
+            String response = sendGetRequest(listNetworkUrl);
+
+            // 반환된 JSON 파싱
+            Map<String, String> serverUrls = parseServerUrls(response);
+            if (serverUrls.containsKey("primary")) {
+                String primaryUrl = serverUrls.get("primary");
+                // primary 서버의 큐 리스트 조회
+                String queueList = getQueueList(primaryUrl);
+                System.out.println("Queue List from Primary Server: " + queueList);
+            } else {
+                System.out.println("Primary server URL not found");
+            }
+        } catch (Exception e) {
+            System.out.println("Error occurred: " + e.getMessage());
+        }
+    }
+
+    // HTTP GET 요청 보내기
+    private static String sendGetRequest(String url) throws Exception {
+        URL obj = new URL(url);
+        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+        con.setRequestMethod("GET");
+        int responseCode = con.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+            return response.toString();
+        } else {
+            throw new RuntimeException("GET request failed with HTTP error code: " + responseCode);
+        }
+    }
+
+    // JSON 파싱하여 live, backup, primary 서버 URL 추출
+    private static Map<String, String> parseServerUrls(String json) {
+        Map<String, String> serverUrls = new HashMap<>();
+        // 여기에 JSON 파싱 로직 추가
+        // 예시: JSON에서 live, backup, primary 서버 URL 추출하여 serverUrls에 추가
+        // 예시: serverUrls.put("live", liveUrl);
+        // 예시: serverUrls.put("backup", backupUrl);
+        // 예시: serverUrls.put("primary", primaryUrl);
+        return serverUrls;
+    }
+
+    // 큐 리스트 가져오기
+    private static String getQueueList(String serverUrl) throws Exception {
+        // primary 서버의 /queuelist 엔드포인트 호출
+        String queueListUrl = serverUrl + "/queuelist";
+        return sendGetRequest(queueListUrl);
+    }
+}
