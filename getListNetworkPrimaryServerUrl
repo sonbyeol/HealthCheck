@@ -1,0 +1,85 @@
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
+
+public class MyRestClient {
+    private static final String SERVER_1_URL = "http://server1:8161"; // 예시 URL, 실제 URL로 대체해야 합니다.
+    private static final String SERVER_2_URL = "http://server2:8161"; // 예시 URL, 실제 URL로 대체해야 합니다.
+    private RestTemplate restTemplate;
+
+    public MyRestClient() {
+        this.restTemplate = new RestTemplate();
+    }
+
+    public String getListNetworkPrimaryServerUrl(String serverUrl) {
+        try {
+            ResponseEntity<Map> responseEntity = restTemplate.getForEntity(serverUrl + "/listnetwork", Map.class);
+            if (responseEntity.getStatusCode().is2xxSuccessful()) {
+                Map<String, String> responseMap = responseEntity.getBody();
+                return responseMap.get("primary");
+            }
+        } catch (RestClientException e) {
+            System.err.println("Error calling " + serverUrl + "/listnetwork: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public String getQueueList(String serverUrl) {
+        String primaryServerUrl = getListNetworkPrimaryServerUrl(serverUrl);
+        if (primaryServerUrl != null) {
+            return makeRequest(primaryServerUrl + "/queueList");
+        } else {
+            return "Unable to fetch queue list. Primary server URL not found.";
+        }
+    }
+
+    public String getConsumerList(String serverUrl) {
+        String primaryServerUrl = getListNetworkPrimaryServerUrl(serverUrl);
+        if (primaryServerUrl != null) {
+            return makeRequest(primaryServerUrl + "/consumerList");
+        } else {
+            return "Unable to fetch consumer list. Primary server URL not found.";
+        }
+    }
+
+    public String getAddressList(String serverUrl) {
+        String primaryServerUrl = getListNetworkPrimaryServerUrl(serverUrl);
+        if (primaryServerUrl != null) {
+            return makeRequest(primaryServerUrl + "/addressList");
+        } else {
+            return "Unable to fetch address list. Primary server URL not found.";
+        }
+    }
+
+    private String makeRequest(String url) {
+        try {
+            ResponseEntity<String> responseEntity = restTemplate.getForEntity(url, String.class);
+            if (responseEntity.getStatusCode().is2xxSuccessful()) {
+                return responseEntity.getBody();
+            }
+        } catch (RestClientException e) {
+            System.err.println("Error calling " + url + ": " + e.getMessage());
+        }
+
+        return "Unable to fetch data from " + url;
+    }
+
+    public static void main(String[] args) {
+        MyRestClient restClient = new MyRestClient();
+
+        // Queue 리스트 확인
+        String queueListResponse = restClient.getQueueList(SERVER_1_URL);
+        System.out.println("Queue List: " + queueListResponse);
+
+        // Consumer 리스트 확인
+        String consumerListResponse = restClient.getConsumerList(SERVER_1_URL);
+        System.out.println("Consumer List: " + consumerListResponse);
+
+        // Address 리스트 확인
+        String addressListResponse = restClient.getAddressList(SERVER_1_URL);
+        System.out.println("Address List: " + addressListResponse);
+    }
+}
